@@ -140,3 +140,51 @@ class TestFetchLicenseEnhanced:
         result = self.agent.fetch_license(self.client)
         assert result["expiration_date"] == "2099-12-31"
         assert result["days_remaining"] > 0
+
+
+class TestFetchServerInfo:
+    def setup_method(self):
+        self.agent = load_agent()
+        self.client = MagicMock()
+
+    SAMPLE_SERVER_INFO = {
+        "name": "sesam-server",
+        "release": "5.2.0.3",
+        "kernel": "5.2.0",
+        "os": "Linux",
+        "dbType": "postgres",
+        "javaVersion": "11.0.12",
+        "timezone": "Europe/Berlin",
+    }
+
+    def _make_response(self, data, status=200):
+        resp = MagicMock()
+        resp.status_code = status
+        resp.json.return_value = data
+        return resp
+
+    def test_calls_server_info_endpoint(self):
+        self.client.get.return_value = self._make_response(self.SAMPLE_SERVER_INFO)
+        self.agent.fetch_server_info(self.client)
+        self.client.get.assert_called_once_with("/server/info")
+
+    def test_returns_key_fields(self):
+        self.client.get.return_value = self._make_response(self.SAMPLE_SERVER_INFO)
+        result = self.agent.fetch_server_info(self.client)
+        assert result["release"] == "5.2.0.3"
+        assert result["os"] == "Linux"
+        assert result["dbType"] == "postgres"
+        assert result["javaVersion"] == "11.0.12"
+        assert result["timezone"] == "Europe/Berlin"
+        assert result["error"] is None
+
+    def test_http_error_sets_error(self):
+        self.client.get.return_value = self._make_response({}, status=401)
+        result = self.agent.fetch_server_info(self.client)
+        assert result["error"] == "HTTP 401"
+
+    def test_request_exception_sets_error(self):
+        import requests
+        self.client.get.side_effect = requests.RequestException("timeout")
+        result = self.agent.fetch_server_info(self.client)
+        assert "timeout" in result["error"]

@@ -265,6 +265,35 @@ def fetch_license(client):
         }
 
 
+def fetch_server_info(client):
+    """Fetch SEP Sesam server information."""
+    try:
+        resp = client.get("/server/info")
+        if resp.status_code == 200:
+            data = resp.json()
+            return {
+                "name": data.get("name"),
+                "release": data.get("release"),
+                "kernel": data.get("kernel"),
+                "os": data.get("serverOs") or data.get("os"),
+                "dbType": data.get("dbType"),
+                "javaVersion": data.get("javaVersion"),
+                "timezone": data.get("timezone"),
+                "error": None,
+            }
+        return {
+            "name": None, "release": None, "kernel": None,
+            "os": None, "dbType": None, "javaVersion": None,
+            "timezone": None, "error": f"HTTP {resp.status_code}",
+        }
+    except requests.RequestException as exc:
+        return {
+            "name": None, "release": None, "kernel": None,
+            "os": None, "dbType": None, "javaVersion": None,
+            "timezone": None, "error": str(exc),
+        }
+
+
 def _discover_group_names(client):
     """Return list of all backup group names from the API."""
     try:
@@ -352,6 +381,11 @@ def main():
     license_info = fetch_license(client)
     print("<<<sep_sesam_license:sep(0)>>>")
     print(json.dumps(license_info))
+
+    # Server info section
+    server_info = fetch_server_info(client)
+    print("<<<sep_sesam_server_info:sep(0)>>>")
+    print(json.dumps(server_info))
 
 
 if __name__ == "__main__":
