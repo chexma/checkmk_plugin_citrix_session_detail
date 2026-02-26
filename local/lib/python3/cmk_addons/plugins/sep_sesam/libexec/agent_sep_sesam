@@ -183,37 +183,84 @@ def fetch_datastores(client, datastores):
 
 
 def fetch_license(client):
-    """Fetch license information."""
+    """Fetch license information including edition, customer, and volume."""
     try:
         resp = client.post("/licenses/info")
-        if resp.status_code in (200, 201):
-            text = resp.text
-            match = re.search(
-                r"Maintenance expiration date\s+(\d{4}-\d{2}-\d{2})", text
-            )
-            if match:
-                expiration_str = match.group(1)
-                expiration_date = datetime.strptime(expiration_str, "%Y-%m-%d")
-                days_remaining = (expiration_date - datetime.now()).days
-                return {
-                    "expiration_date": expiration_str,
-                    "days_remaining": days_remaining,
-                    "error": None,
-                }
+        if resp.status_code not in (200, 201):
             return {
-                "expiration_date": None,
-                "days_remaining": None,
+                "expiration_date": None, "days_remaining": None,
+                "edition": None, "customer": None,
+                "volume_used_tb": None, "volume_total_tb": None,
+                "error": f"HTTP {resp.status_code}",
+            }
+
+        # The response is a JSON array of strings, or plain text
+        try:
+            lines = resp.json()
+            if not isinstance(lines, list):
+                lines = resp.text.splitlines()
+        except Exception:
+            lines = resp.text.splitlines()
+
+        text = "\n".join(str(line) for line in lines)
+
+        # Expiration date
+        expiration_date = None
+        days_remaining = None
+        match = re.search(r"Maintenance expiration date\s+(\d{4}-\d{2}-\d{2})", text)
+        if match:
+            expiration_str = match.group(1)
+            expiration_date = expiration_str
+            expiration_dt = datetime.strptime(expiration_str, "%Y-%m-%d")
+            days_remaining = (expiration_dt - datetime.now()).days
+
+        # Edition
+        edition = None
+        m = re.search(r"^Edition:\s*(.+)", text, re.MULTILINE)
+        if m:
+            edition = m.group(1).strip()
+
+        # Customer
+        customer = None
+        m = re.search(r"^Customer\s+:\s*(.+)", text, re.MULTILINE)
+        if m:
+            customer = m.group(1).strip()
+
+        # Volume usage (e.g. "   1.023 TB of 21  TB FrontSide")
+        volume_used_tb = None
+        volume_total_tb = None
+        m = re.search(
+            r"(\d+\.?\d*)\s*TB\s+of\s+(\d+\.?\d*)\s*TB\s+FrontSide",
+            text,
+            re.IGNORECASE,
+        )
+        if m:
+            volume_used_tb = float(m.group(1))
+            volume_total_tb = float(m.group(2))
+
+        if expiration_date is None:
+            return {
+                "expiration_date": None, "days_remaining": None,
+                "edition": edition, "customer": customer,
+                "volume_used_tb": volume_used_tb, "volume_total_tb": volume_total_tb,
                 "error": "No expiration date found in license response",
             }
+
         return {
-            "expiration_date": None,
-            "days_remaining": None,
-            "error": f"HTTP {resp.status_code}",
+            "expiration_date": expiration_date,
+            "days_remaining": days_remaining,
+            "edition": edition,
+            "customer": customer,
+            "volume_used_tb": volume_used_tb,
+            "volume_total_tb": volume_total_tb,
+            "error": None,
         }
-    except requests.RequestException as exc:
+
+    except Exception as exc:
         return {
-            "expiration_date": None,
-            "days_remaining": None,
+            "expiration_date": None, "days_remaining": None,
+            "edition": None, "customer": None,
+            "volume_used_tb": None, "volume_total_tb": None,
             "error": str(exc),
         }
 

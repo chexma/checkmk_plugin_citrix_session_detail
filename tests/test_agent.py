@@ -4,6 +4,8 @@ import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 import importlib.machinery
 import importlib.util
 import types
@@ -76,3 +78,65 @@ class TestFetchBackupjobs:
         result = self.agent.fetch_backupjobs(self.client, ["grp1"])
         assert len(result) == 1
         assert result[0]["exec"] is False
+
+
+class TestFetchLicenseEnhanced:
+    def setup_method(self):
+        self.agent = load_agent()
+        self.client = MagicMock()
+
+    SAMPLE_LICENSE_RESPONSE = [
+        "2020-09-09 15:15:04: sm_info c",
+        "License: ok  ",
+        "Edition: Ultimate Volume",
+        "Customer        : SEP-AG",
+        "Customer No.    : 12345",
+        "Issued          : 2019-07-04 09:29:14",
+        "Service Modality: Maintenance",
+        "Time  : Date of Installation 201805220847  lasting unlimited days",
+        "      : Maintenance expiration date 2099-12-31",
+        "Volume Based License:",
+        "   1.023 TB of 21  TB FrontSide",
+    ]
+
+    def _make_response(self, lines, status=200):
+        resp = MagicMock()
+        resp.status_code = status
+        resp.json.return_value = lines
+        resp.text = "\n".join(lines)
+        return resp
+
+    def test_parses_edition(self):
+        self.client.post.return_value = self._make_response(self.SAMPLE_LICENSE_RESPONSE)
+        result = self.agent.fetch_license(self.client)
+        assert result["edition"] == "Ultimate Volume"
+
+    def test_parses_customer(self):
+        self.client.post.return_value = self._make_response(self.SAMPLE_LICENSE_RESPONSE)
+        result = self.agent.fetch_license(self.client)
+        assert result["customer"] == "SEP-AG"
+
+    def test_parses_volume_used(self):
+        self.client.post.return_value = self._make_response(self.SAMPLE_LICENSE_RESPONSE)
+        result = self.agent.fetch_license(self.client)
+        assert result["volume_used_tb"] == pytest.approx(1.023, abs=0.001)
+        assert result["volume_total_tb"] == 21.0
+
+    def test_missing_edition_is_none(self):
+        lines = ["License: ok", "      : Maintenance expiration date 2099-12-31"]
+        self.client.post.return_value = self._make_response(lines)
+        result = self.agent.fetch_license(self.client)
+        assert result["edition"] is None
+
+    def test_missing_volume_returns_none(self):
+        lines = ["License: ok", "      : Maintenance expiration date 2099-12-31"]
+        self.client.post.return_value = self._make_response(lines)
+        result = self.agent.fetch_license(self.client)
+        assert result["volume_used_tb"] is None
+        assert result["volume_total_tb"] is None
+
+    def test_existing_expiry_still_works(self):
+        self.client.post.return_value = self._make_response(self.SAMPLE_LICENSE_RESPONSE)
+        result = self.agent.fetch_license(self.client)
+        assert result["expiration_date"] == "2099-12-31"
+        assert result["days_remaining"] > 0
