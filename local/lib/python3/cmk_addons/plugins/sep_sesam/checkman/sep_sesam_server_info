@@ -1,7 +1,7 @@
 title: SEP Sesam Server
 agents: sep_sesam
 catalog: app/backup
-license: GPL
+license: GPLv2
 distribution: check_mk
 description:
  Provides informational data about the SEP Sesam server.

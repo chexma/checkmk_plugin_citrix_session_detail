@@ -1,10 +1,8 @@
 """Tests for agent_based/sep_sesam.py."""
-import json
 import sys
 import types
 import unittest.mock
 from pathlib import Path
-from unittest.mock import MagicMock
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "local/lib/python3"))
 
@@ -38,7 +36,6 @@ cmk_v2.render = types.SimpleNamespace(
 from cmk_addons.plugins.sep_sesam.agent_based.sep_sesam import (
     discover_sep_sesam_backupjobs,
     check_sep_sesam_backupjobs,
-    parse_sep_sesam_backupjobs,
 )
 
 from cmk_addons.plugins.sep_sesam.agent_based.sep_sesam import check_sep_sesam_license

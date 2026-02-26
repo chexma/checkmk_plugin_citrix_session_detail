@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """CheckMK Check Plugins for SEP Sesam Backup Software.
 
-Provides three check plugins:
-- sep_sesam_backupgroups: Status of individual backup groups
-- sep_sesam_datastores:   Status and space usage of datastores
-- sep_sesam_license:      License expiration monitoring
+Provides five check plugins:
+- sep_sesam_backupgroups:  Status of individual backup groups
+- sep_sesam_backupjobs:    Status of individual backup tasks
+- sep_sesam_datastores:    Status and space usage of datastores
+- sep_sesam_license:       License expiration, edition, customer, volume
+- sep_sesam_server_info:   Server version, OS, database type (informational)
 """
 
 import json

@@ -3,8 +3,10 @@
 
 Queries the SEP Sesam REST API and outputs agent sections for:
 - Backup groups (status)
+- Backup jobs (per-task status, discovered from backup groups)
 - Datastores (status, space usage)
-- License (expiration)
+- License (expiration, edition, customer, volume)
+- Server info (version, OS, database type)
 
 Password is read from stdin for security.
 """

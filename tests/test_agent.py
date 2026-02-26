@@ -1,14 +1,11 @@
 """Tests for libexec/agent_sep_sesam."""
-import json
-import sys
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
 import importlib.machinery
 import importlib.util
-import types
 
 AGENT_PATH = Path(__file__).parent.parent / "local/lib/python3/cmk_addons/plugins/sep_sesam/libexec/agent_sep_sesam"
 
