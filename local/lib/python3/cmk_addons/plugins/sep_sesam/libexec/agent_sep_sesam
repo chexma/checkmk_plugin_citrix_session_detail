@@ -1,0 +1,311 @@
+#!/usr/bin/env python3
+"""SEP Sesam Special Agent for CheckMK.
+
+Queries the SEP Sesam REST API and outputs agent sections for:
+- Backup groups (status)
+- Datastores (status, space usage)
+- License (expiration)
+
+Password is read from stdin for security.
+"""
+
+import argparse
+import json
+import re
+import sys
+from datetime import datetime
+
+try:
+    import requests
+except ImportError:
+    sys.stderr.write("Error: 'requests' library not available\n")
+    sys.exit(1)
+
+try:
+    import urllib3
+    _URLLIB3_AVAILABLE = True
+except ImportError:
+    _URLLIB3_AVAILABLE = False
+
+
+class SesamClient:
+    def __init__(self, hostname, port, username, password, verify_ssl=True, timeout=30):
+        self.base_url = f"https://{hostname}:{port}/sep/api/v2"
+        self.verify_ssl = verify_ssl
+        self.timeout = timeout
+        self.session = requests.Session()
+        self.session.auth = (username, password)
+        self.session.headers.update({"Accept": "application/json"})
+        if not verify_ssl and _URLLIB3_AVAILABLE:
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+    def get(self, endpoint):
+        url = f"{self.base_url}{endpoint}"
+        return self.session.get(url, verify=self.verify_ssl, timeout=self.timeout)
+
+    def post(self, endpoint, data=None):
+        url = f"{self.base_url}{endpoint}"
+        return self.session.post(
+            url, json=data or {}, verify=self.verify_ssl, timeout=self.timeout
+        )
+
+
+def fetch_backupgroups(client, groups):
+    """Fetch backup group data. If groups is empty, tries list endpoint first."""
+    results = []
+
+    if not groups:
+        try:
+            resp = client.get("/backupgroups")
+            if resp.status_code == 200:
+                data = resp.json()
+                if isinstance(data, list):
+                    groups = [g.get("name") for g in data if g.get("name")]
+                elif isinstance(data, dict):
+                    items = data.get("backupGroups") or data.get("items") or []
+                    groups = [g.get("name") for g in items if g.get("name")]
+        except Exception:
+            pass
+
+    for group in groups:
+        try:
+            resp = client.get(f"/backupgroups/{group}")
+            if resp.status_code == 200:
+                data = resp.json()
+                results.append({
+                    "name": group,
+                    "resultsSts": data.get("resultsSts", "UNKNOWN"),
+                    "error": None,
+                })
+            else:
+                results.append({
+                    "name": group,
+                    "resultsSts": "ERROR",
+                    "error": f"HTTP {resp.status_code}",
+                })
+        except requests.RequestException as exc:
+            results.append({
+                "name": group,
+                "resultsSts": "ERROR",
+                "error": str(exc),
+            })
+
+    return results
+
+
+def fetch_backupjobs(client, groups):
+    """Fetch all backup tasks from the given backup groups."""
+    results = []
+    for group in groups:
+        try:
+            resp = client.get(f"/backupgroups/{group}/tasks")
+            if resp.status_code == 200:
+                tasks = resp.json()
+                if isinstance(tasks, list):
+                    for task in tasks:
+                        if isinstance(task, dict) and task.get("name"):
+                            results.append({
+                                "name": task["name"],
+                                "group": group,
+                                "resultsSts": task.get("resultsSts", "UNKNOWN"),
+                                "exec": task.get("exec", True),
+                                "error": None,
+                            })
+            else:
+                results.append({
+                    "name": f"_error_{group}",
+                    "group": group,
+                    "resultsSts": "ERROR",
+                    "exec": False,
+                    "error": f"HTTP {resp.status_code}",
+                })
+        except Exception as exc:
+            results.append({
+                "name": f"_error_{group}",
+                "group": group,
+                "resultsSts": "ERROR",
+                "exec": False,
+                "error": str(exc),
+            })
+    return results
+
+
+def fetch_datastores(client, datastores):
+    """Fetch datastore data. If datastores is empty, tries list endpoint first."""
+    results = []
+
+    if not datastores:
+        try:
+            resp = client.get("/datastores")
+            if resp.status_code == 200:
+                data = resp.json()
+                if isinstance(data, list):
+                    datastores = [d.get("name") for d in data if d.get("name")]
+                elif isinstance(data, dict):
+                    items = data.get("datastores") or data.get("items") or []
+                    datastores = [d.get("name") for d in items if d.get("name")]
+        except Exception:
+            pass
+
+    for ds in datastores:
+        try:
+            resp = client.get(f"/datastores/{ds}")
+            if resp.status_code == 200:
+                data = resp.json()
+                results.append({
+                    "name": ds,
+                    "status": data.get("status", "UNKNOWN"),
+                    "free": data.get("free", "0"),
+                    "used": data.get("used", "0"),
+                    "total": data.get("total", "0"),
+                    "error": None,
+                })
+            else:
+                results.append({
+                    "name": ds,
+                    "status": "ERROR",
+                    "free": "0",
+                    "used": "0",
+                    "total": "0",
+                    "error": f"HTTP {resp.status_code}",
+                })
+        except requests.RequestException as exc:
+            results.append({
+                "name": ds,
+                "status": "ERROR",
+                "free": "0",
+                "used": "0",
+                "total": "0",
+                "error": str(exc),
+            })
+
+    return results
+
+
+def fetch_license(client):
+    """Fetch license information."""
+    try:
+        resp = client.post("/licenses/info")
+        if resp.status_code in (200, 201):
+            text = resp.text
+            match = re.search(
+                r"Maintenance expiration date\s+(\d{4}-\d{2}-\d{2})", text
+            )
+            if match:
+                expiration_str = match.group(1)
+                expiration_date = datetime.strptime(expiration_str, "%Y-%m-%d")
+                days_remaining = (expiration_date - datetime.now()).days
+                return {
+                    "expiration_date": expiration_str,
+                    "days_remaining": days_remaining,
+                    "error": None,
+                }
+            return {
+                "expiration_date": None,
+                "days_remaining": None,
+                "error": "No expiration date found in license response",
+            }
+        return {
+            "expiration_date": None,
+            "days_remaining": None,
+            "error": f"HTTP {resp.status_code}",
+        }
+    except requests.RequestException as exc:
+        return {
+            "expiration_date": None,
+            "days_remaining": None,
+            "error": str(exc),
+        }
+
+
+def _discover_group_names(client):
+    """Return list of all backup group names from the API."""
+    try:
+        resp = client.get("/backupgroups")
+        if resp.status_code == 200:
+            data = resp.json()
+            if isinstance(data, list):
+                return [g.get("name") for g in data if g.get("name")]
+            if isinstance(data, dict):
+                items = data.get("backupGroups") or data.get("items") or []
+                return [g.get("name") for g in items if g.get("name")]
+    except Exception:
+        pass
+    return []
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="SEP Sesam Special Agent for CheckMK"
+    )
+    parser.add_argument(
+        "--hostname", required=True,
+        help="SEP Sesam server hostname or IP address",
+    )
+    parser.add_argument(
+        "--port", type=int, default=11401,
+        help="API port (default: 11401)",
+    )
+    parser.add_argument(
+        "--username", required=True,
+        help="SEP Sesam API username",
+    )
+    parser.add_argument(
+        "--no-verify-ssl", action="store_true",
+        help="Disable SSL certificate verification",
+    )
+    parser.add_argument(
+        "--timeout", type=int, default=30,
+        help="Request timeout in seconds (default: 30)",
+    )
+    parser.add_argument(
+        "--backupgroups", nargs="*", default=[], metavar="NAME",
+        help="Backup group names to monitor (default: auto-discover all)",
+    )
+    parser.add_argument(
+        "--datastores", nargs="*", default=[], metavar="NAME",
+        help="Datastore names to monitor (default: auto-discover all)",
+    )
+    args = parser.parse_args()
+
+    # Read password from stdin (more secure than command line argument)
+    password = sys.stdin.read().strip()
+    if not password:
+        sys.stderr.write("Error: No password provided via stdin\n")
+        sys.exit(1)
+
+    client = SesamClient(
+        hostname=args.hostname,
+        port=args.port,
+        username=args.username,
+        password=password,
+        verify_ssl=not args.no_verify_ssl,
+        timeout=args.timeout,
+    )
+
+    # Resolve group list (auto-discover if none specified)
+    group_names = args.backupgroups or _discover_group_names(client)
+
+    # Backup groups section
+    backupgroups = fetch_backupgroups(client, group_names)
+    print("<<<sep_sesam_backupgroups:sep(0)>>>")
+    print(json.dumps(backupgroups))
+
+    # Backup jobs section
+    backupjobs = fetch_backupjobs(client, group_names)
+    print("<<<sep_sesam_backupjobs:sep(0)>>>")
+    print(json.dumps(backupjobs))
+
+    # Datastores section
+    datastores = fetch_datastores(client, args.datastores)
+    print("<<<sep_sesam_datastores:sep(0)>>>")
+    print(json.dumps(datastores))
+
+    # License section
+    license_info = fetch_license(client)
+    print("<<<sep_sesam_license:sep(0)>>>")
+    print(json.dumps(license_info))
+
+
+if __name__ == "__main__":
+    main()
