@@ -307,6 +307,10 @@ def check_sep_sesam_license(params, section):
 
     expiration_date = section.get("expiration_date")
     days_remaining = section.get("days_remaining")
+    edition = section.get("edition")
+    customer = section.get("customer")
+    volume_used_tb = section.get("volume_used_tb")
+    volume_total_tb = section.get("volume_total_tb")
 
     if expiration_date is None or days_remaining is None:
         yield Result(state=State.UNKNOWN, summary="License expiration date unavailable")
@@ -315,33 +319,48 @@ def check_sep_sesam_license(params, section):
     warn_days = params.get("warn_days", 30)
     crit_days = params.get("crit_days", 15)
 
+    edition_str = f" | Edition: {edition}" if edition else ""
+
     if days_remaining <= 0:
         state = State.CRIT
         summary = (
             f"License EXPIRED on {expiration_date} "
-            f"({abs(days_remaining)} days ago)"
+            f"({abs(days_remaining)} days ago){edition_str}"
         )
     elif days_remaining <= crit_days:
         state = State.CRIT
         summary = (
             f"License expires {expiration_date} "
-            f"({days_remaining} days remaining)"
+            f"({days_remaining} days remaining){edition_str}"
         )
     elif days_remaining <= warn_days:
         state = State.WARN
         summary = (
             f"License expires {expiration_date} "
-            f"({days_remaining} days remaining)"
+            f"({days_remaining} days remaining){edition_str}"
         )
     else:
         state = State.OK
         summary = (
             f"License valid until {expiration_date} "
-            f"({days_remaining} days remaining)"
+            f"({days_remaining} days remaining){edition_str}"
         )
 
     yield Result(state=state, summary=summary)
     yield Metric("sep_sesam_license_days", days_remaining)
+
+    # Additional details
+    details_parts = []
+    if customer:
+        details_parts.append(f"Customer: {customer}")
+    if volume_used_tb is not None and volume_total_tb is not None:
+        details_parts.append(f"Volume: {volume_used_tb:.3f} TB of {volume_total_tb:.0f} TB")
+        if volume_total_tb > 0:
+            vol_pct = volume_used_tb / volume_total_tb * 100.0
+            yield Metric("sep_sesam_volume_used_pct", vol_pct)
+
+    if details_parts:
+        yield Result(state=State.OK, details=" | ".join(details_parts))
 
 
 agent_section_sep_sesam_license = AgentSection(

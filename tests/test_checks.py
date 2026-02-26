@@ -19,7 +19,12 @@ for mod_name in [
 import cmk.agent_based.v2 as cmk_v2
 cmk_v2.AgentSection = unittest.mock.MagicMock()
 cmk_v2.CheckPlugin = unittest.mock.MagicMock()
-cmk_v2.Metric = lambda name, value: (name, value)
+class _MockMetric(tuple):
+    """Tuple subclass that also supports .get() so tests can iterate mixed results."""
+    def get(self, key, default=None):
+        return default
+
+cmk_v2.Metric = lambda name, value: _MockMetric((name, value))
 cmk_v2.Result = unittest.mock.MagicMock(side_effect=lambda **kw: kw)
 cmk_v2.Service = unittest.mock.MagicMock(side_effect=lambda **kw: kw)
 cmk_v2.State = types.SimpleNamespace(OK=0, WARN=1, CRIT=2, UNKNOWN=3)
@@ -35,6 +40,8 @@ from cmk_addons.plugins.sep_sesam.agent_based.sep_sesam import (
     check_sep_sesam_backupjobs,
     parse_sep_sesam_backupjobs,
 )
+
+from cmk_addons.plugins.sep_sesam.agent_based.sep_sesam import check_sep_sesam_license
 
 
 class TestBackupJobsDiscover:
@@ -113,3 +120,49 @@ class TestBackupJobsCheck:
         section = [{"name": "t1", "group": "my_group", "resultsSts": "SUCCESSFUL", "exec": True, "error": None}]
         results = self._check("t1", section)
         assert any("my_group" in str(r.get("summary", "")) or "my_group" in str(r.get("details", "")) for r in results)
+
+
+class TestLicenseCheckEnhanced:
+    BASE_PARAMS = {"warn_days": 30, "crit_days": 15}
+
+    def _section(self, **kwargs):
+        base = {
+            "expiration_date": "2099-12-31",
+            "days_remaining": 27000,
+            "edition": None,
+            "customer": None,
+            "volume_used_tb": None,
+            "volume_total_tb": None,
+            "error": None,
+        }
+        base.update(kwargs)
+        return base
+
+    def test_edition_shown_in_summary(self):
+        section = self._section(edition="Ultimate Volume")
+        results = list(check_sep_sesam_license(self.BASE_PARAMS, section))
+        all_text = " ".join(str(r.get("summary", "")) + str(r.get("details", "")) for r in results)
+        assert "Ultimate Volume" in all_text
+
+    def test_customer_shown_in_details(self):
+        section = self._section(customer="SEP-AG")
+        results = list(check_sep_sesam_license(self.BASE_PARAMS, section))
+        all_text = " ".join(str(r.get("summary", "")) + str(r.get("details", "")) for r in results)
+        assert "SEP-AG" in all_text
+
+    def test_volume_shown_when_available(self):
+        section = self._section(volume_used_tb=1.023, volume_total_tb=21.0)
+        results = list(check_sep_sesam_license(self.BASE_PARAMS, section))
+        all_text = " ".join(str(r.get("summary", "")) + str(r.get("details", "")) for r in results)
+        assert "1.023" in all_text or "TB" in all_text
+
+    def test_none_edition_does_not_crash(self):
+        section = self._section(edition=None, customer=None, volume_used_tb=None)
+        results = list(check_sep_sesam_license(self.BASE_PARAMS, section))
+        assert len(results) > 0
+
+    def test_volume_metric_emitted(self):
+        section = self._section(volume_used_tb=1.023, volume_total_tb=21.0)
+        results = list(check_sep_sesam_license(self.BASE_PARAMS, section))
+        metric_names = [r[0] for r in results if isinstance(r, tuple)]
+        assert "sep_sesam_volume_used_pct" in metric_names
