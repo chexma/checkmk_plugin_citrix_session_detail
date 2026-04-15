@@ -12,7 +12,7 @@ Supports two data formats:
 """
 
 import time
-from datetime import datetime, timezone
+from datetime import datetime
 
 from cmk.agent_based.v2 import (
     AgentSection,
@@ -27,11 +27,15 @@ from cmk.agent_based.v2 import (
 
 
 def _parse_datetime(date_str):
-    """Try to parse datetime string in supported formats."""
+    """Try to parse datetime string in supported formats.
+
+    Timestamps from Citrix are local time, so we parse without timezone
+    and use local time for comparison.
+    """
     for fmt in ("%d.%m.%Y %H:%M:%S", "%Y-%m-%d %H:%M:%S"):
         try:
             dt = datetime.strptime(date_str, fmt)
-            return dt.replace(tzinfo=timezone.utc).timestamp()
+            return dt.timestamp()
         except ValueError:
             continue
     return None
@@ -124,7 +128,8 @@ def check_citrix_session_count(item, params, section):
         ages = []
         for s in disconnected:
             if s["idle_since"] is not None:
-                ages.append((now - s["idle_since"], s))
+                age = max(0, now - s["idle_since"])
+                ages.append((age, s))
 
         if ages:
             ages.sort(key=lambda x: x[0], reverse=True)
