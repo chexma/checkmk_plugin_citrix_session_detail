@@ -1,0 +1,29 @@
+title: Citrix: Session Count
+agents: windows
+catalog: app/citrix
+license: GPLv2
+distribution: citrix_session_detail
+description:
+ This check monitors Citrix XenApp/XenDesktop sessions on individual
+ Citrix servers via piggyback data from the Delivery Controller.
+
+ It reports the number of {Active} and {Disconnected} sessions per server
+ and the age of the oldest disconnected session.
+
+ The check returns {WARN} or {CRIT} if the number of active sessions
+ exceeds configurable upper levels.
+
+ The check returns {WARN} or {CRIT} if the number of disconnected sessions
+ exceeds configurable upper levels.
+
+ The check returns {WARN} or {CRIT} if the oldest disconnected session
+ age exceeds configurable upper levels (default: 1 day / 3 days).
+
+ Detailed information about individual disconnected sessions (username,
+ idle duration) is available in the service details view.
+
+ Requires the Citrix Session Detail agent plugin running on a
+ Citrix Delivery Controller with the Citrix.Broker.Admin PowerShell snap-in.
+
+discovery:
+ One service is created per Citrix server (via piggyback).
