@@ -17,7 +17,7 @@ from cmk.rulesets.v1.form_specs import (
     TimeSpan,
     TimeMagnitude,
 )
-from cmk.rulesets.v1.rule_specs import AgentConfig, CheckParameters, HostAndItemCondition, Topic
+from cmk.rulesets.v1.rule_specs import AgentConfig, CheckParameters, HostCondition, Topic
 
 
 def _check_parameter_form():
@@ -65,7 +65,7 @@ rule_spec_citrix_session_count = CheckParameters(
     title=Title("Citrix Session Count"),
     topic=Topic.APPLICATIONS,
     parameter_form=_check_parameter_form,
-    condition=HostAndItemCondition(item_title=Title("Citrix Server")),
+    condition=HostCondition(),
 )
 
 

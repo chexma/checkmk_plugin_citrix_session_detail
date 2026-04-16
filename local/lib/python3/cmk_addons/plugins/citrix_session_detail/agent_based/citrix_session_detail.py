@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Agent-based check plugin for Citrix Session Detail monitoring.
 
-Parses session data and creates one service per Citrix server showing
+Parses session data and creates one service per piggyback host showing
 session counts and oldest disconnected session age.
 
 Supports two data formats:
@@ -44,59 +44,51 @@ def _parse_datetime(date_str):
 def parse_citrix_session_detail(string_table):
     """Parse citrix_session_detail section.
 
-    Returns dict keyed by server short name, each value is a list of sessions.
+    Returns a flat list of sessions (server field is ignored since piggyback
+    assigns each host its own data).
     """
-    servers = {}
+    sessions = []
     for line in string_table:
         if len(line) < 2:
             continue
 
         username = line[0].rsplit("\\", 1)[-1]
         state = line[1]
-        server = None
         idle_since = None
 
-        # Check if field[2] is a server name (contains backslash)
+        # Check if field[2] is a server name (contains backslash) → skip it
         idx = 2
         if len(line) > 2 and "\\" in line[2]:
-            # Flat format: username state DOMAIN\server [date time]
-            server = line[2].rsplit("\\", 1)[-1]
             idx = 3
-        elif len(line) > 2:
-            # Piggyback format: username state [datetime...]
-            server = "_local"
 
         # Parse datetime from remaining fields
         if idx < len(line):
             date_str = " ".join(line[idx:])
             idle_since = _parse_datetime(date_str)
 
-        if server is None:
-            server = "_local"
+        sessions.append(
+            {
+                "username": username,
+                "state": state,
+                "idle_since": idle_since,
+            }
+        )
 
-        session = {
-            "username": username,
-            "state": state,
-            "idle_since": idle_since,
-        }
-        servers.setdefault(server, []).append(session)
-
-    return servers if servers else None
+    return sessions if sessions else None
 
 
 def discover_citrix_session_count(section):
-    """Discover one service per Citrix server."""
+    """Discover a single service (one per piggyback host)."""
+    if section:
+        yield Service()
+
+
+def check_citrix_session_count(params, section):
+    """Check session counts and oldest disconnected session age."""
     if not section:
         return
-    for server_name in section:
-        yield Service(item=server_name)
 
-
-def check_citrix_session_count(item, params, section):
-    """Check session counts and oldest disconnected session age."""
-    sessions = section.get(item)
-    if not sessions:
-        return
+    sessions = section
 
     active = [s for s in sessions if s["state"] == "Active"]
     disconnected = [s for s in sessions if s["state"] == "Disconnected"]
@@ -167,7 +159,7 @@ agent_section_citrix_session_detail = AgentSection(
 check_plugin_citrix_session_count = CheckPlugin(
     name="citrix_session_count",
     sections=["citrix_session_detail"],
-    service_name="Citrix Sessions %s",
+    service_name="Citrix Sessions",
     discovery_function=discover_citrix_session_count,
     check_function=check_citrix_session_count,
     check_default_parameters={
