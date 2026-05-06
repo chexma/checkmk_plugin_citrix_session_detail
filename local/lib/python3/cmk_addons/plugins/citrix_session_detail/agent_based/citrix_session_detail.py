@@ -74,18 +74,18 @@ def parse_citrix_session_detail(string_table):
             }
         )
 
-    return sessions if sessions else None
+    return sessions
 
 
 def discover_citrix_session_count(section):
     """Discover a single service (one per piggyback host)."""
-    if section:
+    if section is not None:
         yield Service()
 
 
 def check_citrix_session_count(params, section):
     """Check session counts and oldest disconnected session age."""
-    if not section:
+    if section is None:
         return
 
     sessions = section

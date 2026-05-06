@@ -105,10 +105,10 @@ class TestParse:
         assert sessions["UserJ"]["idle_since"] is None
 
     def test_parse_empty(self):
-        assert parse_citrix_session_detail([]) is None
+        assert parse_citrix_session_detail([]) == []
 
     def test_parse_short_lines(self):
-        assert parse_citrix_session_detail([["only_one_field"]]) is None
+        assert parse_citrix_session_detail([["only_one_field"]]) == []
 
 
 class TestDiscovery:
@@ -118,7 +118,13 @@ class TestDiscovery:
         assert len(services) == 1
         assert services[0].item is None
 
-    def test_discover_empty(self):
+    def test_discover_empty_section(self):
+        """Empty section (header present, no sessions) → still discover service."""
+        services = list(discover_citrix_session_count([]))
+        assert len(services) == 1
+
+    def test_discover_no_section(self):
+        """No section at all (None) → no service."""
         services = list(discover_citrix_session_count(None))
         assert services == []
 
@@ -148,6 +154,15 @@ class TestCheck:
         assert all(s == State.OK for s in states)
 
     def test_check_empty_section(self):
+        """Empty section (no sessions) → OK with all counts at 0."""
+        results = list(check_citrix_session_count(DEFAULT_PARAMS, []))
+        total = [r for r in results if isinstance(r, Metric) and r.name == "citrix_sessions_total"]
+        assert total[0].value == 0
+        states = [r.state for r in results if isinstance(r, Result)]
+        assert all(s == State.OK for s in states)
+
+    def test_check_no_section(self):
+        """No section at all (None) → no results."""
         results = list(check_citrix_session_count(DEFAULT_PARAMS, None))
         assert results == []
 
