@@ -40,8 +40,10 @@ black plugins/ tests/                 # format (line length 100, see pyproject.t
 isort plugins/ tests/
 flake8 plugins/ tests/
 pytest                                # tests/ (pytest ships with the site)
+.devcontainer/ci.sh                   # everything CI runs (lint, tests, validate)
 
 cmk-validate-plugins                  # all plugins load?
+.devcontainer/test-host.sh <host> <agent-output-file>   # host with canned agent output
 cmk -vI --detect-plugins=<plugin> <host>   # discovery
 cmk -v --detect-plugins=<plugin> <host>    # check
 cmk -R                                # reload config after check plugin changes

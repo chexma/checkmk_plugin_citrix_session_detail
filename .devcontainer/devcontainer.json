@@ -32,6 +32,12 @@
                 "python.defaultInterpreterPath": "/omd/sites/cmk/bin/python3",
                 "python.testing.pytestEnabled": true,
                 "python.testing.pytestArgs": ["tests"],
+                // Use the pinned tools from the image (requirements-tools.txt)
+                // instead of the versions bundled with the extensions, so
+                // format-on-save, the terminal and CI agree.
+                "black-formatter.path": ["/omd/sites/cmk/.local/bin/black"],
+                "isort.path": ["/omd/sites/cmk/.local/bin/isort"],
+                "flake8.path": ["/omd/sites/cmk/.local/bin/flake8"],
                 "[python]": {
                     "editor.defaultFormatter": "ms-python.black-formatter"
                 }

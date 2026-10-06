@@ -17,6 +17,11 @@ What you get:
   [checkmk-plugin-dev skill](https://github.com/chexma/claude_code_checkmk_plugin_skill),
   installed as a plugin and updated on every container start
 - `.devcontainer/build.sh` to build the MKP from the `package` manifest
+- `.devcontainer/test-host.sh` to create a host whose agent output comes from
+  a file, for discovery/check runs against canned data
+- GitHub Actions (`.github/workflows/ci.yml`): lint, pytest and
+  `cmk-validate-plugins` in the devcontainer image on every push; on a tag
+  `v<version>` also the MKP as a GitHub release
 
 Requirements: Docker (Desktop) and VS Code with the Dev Containers extension.
 `initializeCommand` uses `mkdir -p` on the host, i.e. a macOS/Linux host (or WSL).
@@ -40,6 +45,22 @@ Then:
    login lives in the Docker volume `checkmk-claude-config`, which all plugin
    containers share, so this is needed once per machine, not per plugin.
 5. Open the Checkmk GUI via the forwarded port 5000 (Ports view), path `/cmk/`.
+
+## Test against canned agent output
+
+```bash
+.devcontainer/test-host.sh myhost temp/myhost.agent_output   # or a script with #!
+cmk -vI --detect-plugins=<plugin> myhost
+cmk -v --detect-plugins=<plugin> myhost
+.devcontainer/test-host.sh --remove myhost
+```
+
+## CI and releases
+
+`.devcontainer/ci.sh` runs the same checks as CI; run it before pushing.
+To release: bump `version` in `package`, commit, then
+`git tag v<version> && git push origin v<version>`. CI builds the MKP and
+attaches it to a GitHub release; it fails if the tag and `version` differ.
 
 ## Get template updates into a plugin repo
 
@@ -73,6 +94,9 @@ overlap, so this usually merges cleanly.
   otherwise add local copies of packages Checkmk ships (urllib3, requests,
   pytest, ...) that shadow the shipped ones. List missing dependencies there
   explicitly. Standalone tools go into `requirements-tools.txt` (own venv).
+- All tool versions are pinned; bump them deliberately and rebuild. VS Code
+  is configured to use the pinned black/isort/flake8 from the image, not the
+  ones bundled with its extensions.
 - Rebuilds pick up a new Checkmk version from `VARIANT`; Claude Code updates
   itself, no rebuild needed for that.
 - Several plugin containers can run at once: port 5000 is forwarded to a free
