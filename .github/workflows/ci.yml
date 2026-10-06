@@ -34,7 +34,7 @@ jobs:
 
       - name: Build devcontainer image
         run: |
-          docker build \
+          docker build --platform=linux/amd64 \
             --build-arg EDITION=${{ steps.cmk.outputs.edition }} \
             --build-arg VARIANT=${{ steps.cmk.outputs.variant }} \
             -t plugin-dev .devcontainer
@@ -56,7 +56,7 @@ jobs:
           W=/workspaces/plugin
           S=/opt/omd/sites/cmk
           # Same mounts as devcontainer.json
-          docker run --rm -u cmk -w $W -e WORKSPACE=$W \
+          docker run --rm --platform=linux/amd64 -u cmk -w $W -e WORKSPACE=$W \
             -v "$PWD:$W" \
             -v "$PWD/lib:$S/local/lib/python3/cmk" \
             -v "$PWD/plugins:$S/local/lib/python3/cmk_addons/plugins" \

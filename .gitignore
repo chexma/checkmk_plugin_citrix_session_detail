@@ -17,3 +17,6 @@ htmlcov/
 
 # OS cruft
 .DS_Store
+
+# Built MKPs (.devcontainer/build.sh copies them here; CI attaches them to releases)
+/*.mkp

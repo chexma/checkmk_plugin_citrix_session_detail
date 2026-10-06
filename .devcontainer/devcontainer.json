@@ -8,7 +8,10 @@
             "EDITION": "cloud",
             "VARIANT": "2.4.0p27",
             "CLAUDE_CODE_VERSION": "latest"
-        }
+        },
+        // Checkmk images exist for amd64 only; on Apple Silicon they run
+        // emulated (enable Rosetta in Docker Desktop for speed).
+        "options": ["--platform=linux/amd64"]
     },
     "init": true,
 
@@ -74,6 +77,7 @@
 
     // Pylance gets SIGKILLed with less memory on larger code bases.
     "runArgs": [
+        "--platform=linux/amd64",
         "--cpus=2",
         "--memory=8g",
         "--memory-swap=10g"

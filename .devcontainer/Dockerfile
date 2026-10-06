@@ -10,7 +10,6 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
  && apt-get install -y --no-install-recommends \
     less \
     git \
-    sudo \
     man-db \
     unzip \
     gnupg2 \

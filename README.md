@@ -31,15 +31,16 @@ Requirements: Docker (Desktop) and VS Code with the Dev Containers extension.
 ```bash
 git clone https://github.com/chexma/checkmk-plugin-template.git checkmk_plugin_foo
 cd checkmk_plugin_foo
-git remote rename origin template
-git remote add origin <url-of-the-new-plugin-repo>
+.devcontainer/init-plugin.sh foo <url-of-the-new-plugin-repo>
 ```
 
-Then:
+`init-plugin.sh` puts the plugin name into `CLAUDE.md`, creates
+`plugins/foo/`, renames the template remote to `template` and sets `origin`
+(leave out the URL to keep the remotes as they are). Then:
 
 1. Set `EDITION` and `VARIANT` (Checkmk version) in
    `.devcontainer/devcontainer.json`.
-2. Fill in the project section of `CLAUDE.md`.
+2. Describe the plugin in the project section of `CLAUDE.md`, commit.
 3. VS Code: "Dev Containers: Reopen in Container".
 4. First time only: run `claude` in the container terminal and log in. The
    login lives in the Docker volume `checkmk-claude-config`, which all plugin
@@ -99,5 +100,9 @@ overlap, so this usually merges cleanly.
   ones bundled with its extensions.
 - Rebuilds pick up a new Checkmk version from `VARIANT`; Claude Code updates
   itself, no rebuild needed for that.
+- The Checkmk images exist for `linux/amd64` only. On Apple Silicon they run
+  emulated; enable "Use Rosetta for x86_64/amd64 emulation" in Docker Desktop.
+- Releases are documented in `Changelog.md`; built `*.mkp` files are not
+  tracked (CI attaches them to the GitHub release).
 - Several plugin containers can run at once: port 5000 is forwarded to a free
   local port per container.
