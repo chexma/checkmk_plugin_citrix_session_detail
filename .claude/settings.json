@@ -1,0 +1,13 @@
+{
+  "extraKnownMarketplaces": {
+    "chexma-checkmk": {
+      "source": {
+        "source": "github",
+        "repo": "chexma/claude_code_checkmk_plugin_skill"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "checkmk-plugin-dev@chexma-checkmk": true
+  }
+}

@@ -1,0 +1,19 @@
+# Claude Code: only shared project settings are tracked. Login, history and
+# memory live in the "checkmk-claude-config" Docker volume, not here; the
+# patterns below are a safety net in case something lands here anyway.
+/.claude/*
+!/.claude/settings.json
+CLAUDE.local.md
+
+# Scratch space (mounted as ~/local/tmp in the site)
+/temp/
+
+# Python / tooling
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
+
+# OS cruft
+.DS_Store
