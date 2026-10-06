@@ -24,7 +24,7 @@ Requirements: Docker (Desktop) and VS Code with the Dev Containers extension.
 ## Start a new plugin
 
 ```bash
-git clone <this-template-url> checkmk_plugin_foo
+git clone https://github.com/chexma/checkmk-plugin-template.git checkmk_plugin_foo
 cd checkmk_plugin_foo
 git remote rename origin template
 git remote add origin <url-of-the-new-plugin-repo>
