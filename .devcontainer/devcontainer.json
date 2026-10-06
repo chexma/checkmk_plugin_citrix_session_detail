@@ -93,7 +93,6 @@
         "OMD_ROOT": "/omd/sites/cmk",
         "OMD_SITE": "cmk",
         "CMK_SITE_ID": "cmk",
-        "WORKSPACE": "${containerWorkspaceFolder}",
-        "NODE_OPTIONS": "--max-old-space-size=4096"
+        "WORKSPACE": "${containerWorkspaceFolder}"
     }
 }
