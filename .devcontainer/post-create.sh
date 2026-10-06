@@ -3,7 +3,7 @@
 set -Eeuo pipefail
 
 OMD_ROOT="${OMD_ROOT:-/omd/sites/cmk}"
-WORKSPACE="${WORKSPACE:?WORKSPACE not set}"
+WORKSPACE="${WORKSPACE:-$(cd "$(dirname "$0")/.." && pwd)}"
 
 # Nagios-compatible active check executables and a scratch dir from the
 # workspace (both created by initializeCommand in devcontainer.json).

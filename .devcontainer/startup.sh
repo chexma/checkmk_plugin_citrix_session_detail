@@ -9,7 +9,7 @@ set +u
 source /omd/sites/cmk/.profile
 set -u
 
-WORKSPACE_DIR="${WORKSPACE:-/workspaces}"
+WORKSPACE_DIR="${WORKSPACE:-$(cd "$(dirname "$0")/.." && pwd)}"
 
 # Stale PID files from the previous container run would keep services from starting
 find "$OMD_ROOT/tmp" -type f -name "*.pid" -delete || true

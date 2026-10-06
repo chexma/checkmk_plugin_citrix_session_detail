@@ -25,17 +25,28 @@ ENV DEVCONTAINER=true
 ENV EDITOR=vim
 ENV VISUAL=vim
 
-COPY --chmod=644 requirements.txt /tmp/requirements.txt
+COPY --chmod=644 requirements-site.txt requirements-tools.txt /tmp/
 
 USER cmk
 
-# Python dev tools go into the site's local/lib/python3. Do not pin packages
-# that Checkmk itself ships (urllib3, requests, pytest, ...): a local copy
-# shadows the shipped one and you end up testing against a different library
-# than production sites run.
+# Test helpers go into the site's local/lib/python3, so pytest imports them
+# next to the Checkmk code. The site's pip3 wrapper always adds --target,
+# which ignores installed packages and would pull in its own copies of
+# requests, urllib3, pytest, ... that shadow the ones Checkmk ships; hence
+# --no-deps (requirements-site.txt lists the dependencies Checkmk lacks).
 RUN PATH="/omd/sites/cmk/bin:${PATH}" \
     OMD_ROOT="/omd/sites/cmk" \
-    /omd/sites/cmk/bin/pip3 install --no-cache-dir -r /tmp/requirements.txt
+    /omd/sites/cmk/bin/pip3 install --no-cache-dir --no-deps -r /tmp/requirements-site.txt
+
+# Formatters and linters get their own venv (site Python, so they parse the
+# same Python version), linked into ~/.local/bin, which is on PATH everywhere.
+RUN /omd/sites/cmk/bin/python3 -m venv /omd/sites/cmk/.local/share/devtools \
+ && /omd/sites/cmk/.local/share/devtools/bin/pip install --no-cache-dir \
+    --disable-pip-version-check -r /tmp/requirements-tools.txt \
+ && mkdir -p /omd/sites/cmk/.local/bin \
+ && for tool in black isort flake8; do \
+      ln -s /omd/sites/cmk/.local/share/devtools/bin/$tool /omd/sites/cmk/.local/bin/$tool; \
+    done
 
 # Claude Code via the native installer, as cmk: it installs into $HOME
 # (~/.local/bin/claude -> ~/.local/share/claude/versions/<version>), so

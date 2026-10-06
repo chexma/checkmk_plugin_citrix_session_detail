@@ -1,0 +1,5 @@
+# Formatters and linters, installed into a separate venv (see Dockerfile):
+# they only read source files and never import Checkmk code.
+black
+isort
+flake8

@@ -10,8 +10,9 @@ What you get:
   on every container start, GUI login `cmkadmin`/`cmkadmin`
 - Workspace directories bind-mounted into the site's `local/` hierarchy, so
   plugin changes are live without copying
-- Python tooling in the site Python: black, isort, flake8, pytest, pytest-cov,
-  requests-mock (configured in `pyproject.toml` / `.flake8`)
+- Python tooling: pytest (shipped with Checkmk) plus pytest-cov and
+  requests-mock in the site Python; black, isort and flake8 in a separate venv
+  (configured in `pyproject.toml` / `.flake8`)
 - Claude Code (native installer, updates itself) with the
   [checkmk-plugin-dev skill](https://github.com/chexma/claude_code_checkmk_plugin_skill),
   installed as a plugin and updated on every container start
@@ -67,9 +68,11 @@ overlap, so this usually merges cleanly.
 - The container starts the site, cleans stale PID files and refreshes the
   skill plugin on **every** start; the log is
   `~/var/log/devcontainer-poststart.log`.
-- Don't pin packages in `.devcontainer/requirements.txt` that Checkmk ships
-  itself (urllib3, requests, pytest, ...): the local copy would shadow the
-  shipped one.
+- `.devcontainer/requirements-site.txt` is installed into the site with
+  `--no-deps`: the site's `pip3` always installs with `--target`, which would
+  otherwise add local copies of packages Checkmk ships (urllib3, requests,
+  pytest, ...) that shadow the shipped ones. List missing dependencies there
+  explicitly. Standalone tools go into `requirements-tools.txt` (own venv).
 - Rebuilds pick up a new Checkmk version from `VARIANT`; Claude Code updates
   itself, no rebuild needed for that.
 - Several plugin containers can run at once: port 5000 is forwarded to a free
