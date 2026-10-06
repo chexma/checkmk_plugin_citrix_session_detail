@@ -17,6 +17,8 @@ permissions:
 
 jobs:
   check:
+    # Only in plugin repos cloned from the template, not in the template itself
+    if: github.repository != 'chexma/checkmk-plugin-template'
     runs-on: ubuntu-latest
     permissions:
       contents: write # create the release on tags
