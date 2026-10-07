@@ -121,7 +121,7 @@ overlap, so this usually merges cleanly.
 | `agents/` | `local/share/check_mk/agents/` | Agent plugins for the bakery |
 | `bin/` | `local/bin/` | Scripts |
 | `nagios_plugins/` | `local/lib/nagios/plugins/` | Active check executables |
-| `temp/` | `local/tmp/` | Scratch space, not tracked |
+| `temp/` | – | Scratch space (test data, agent output), not tracked |
 | `tests/` | – | pytest |
 
 ## Notes
@@ -147,6 +147,14 @@ overlap, so this usually merges cleanly.
   emulated; enable "Use Rosetta for x86_64/amd64 emulation" in Docker Desktop.
 - Releases are documented in `Changelog.md`; built `*.mkp` files are not
   tracked (CI attaches them to the GitHub release).
+- Since Checkmk 2.5 every config generation (`cmk -U`/`-R`, activation)
+  copies `~/local` into a snapshot and fails on symlinks there that point to
+  directories outside it (`IsADirectoryError`). Workspace directories are
+  therefore bind mounts, never symlinks. Containers created from older
+  template versions had such links (`~/local/tmp`, `~/local/lib/nagios/plugins`):
+  pull the template and rebuild. Until then:
+  `rm ~/local/tmp ~/local/lib/nagios/plugins` (removes only the links) and
+  `cmk -R`; active checks in `nagios_plugins/` are unavailable meanwhile.
 - Several plugin containers can run at once: port 5000 is forwarded to a free
   local port per container.
 - No CPU or memory limits are set. If Pylance (installed with the Python
