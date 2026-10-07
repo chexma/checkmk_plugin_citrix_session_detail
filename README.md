@@ -1,6 +1,6 @@
 # Citrix Session Detail Monitoring for Checkmk
 
-Checkmk 2.4 plugin that monitors Citrix XenApp/XenDesktop sessions per Citrix
+Checkmk 2.5 plugin that monitors Citrix XenApp/XenDesktop sessions per Citrix
 server.
 
 A PowerShell agent plugin on the Citrix **Delivery Controller** collects all
@@ -28,7 +28,7 @@ individual Citrix servers.
 
 ## Requirements
 
-- Checkmk 2.4.0p1 or later
+- Checkmk 2.5 (2.5.0p1 up to 2.5.0p99); for Checkmk 2.4 use release 1.1.1
 - Windows Checkmk agent on a Citrix Delivery Controller with the Citrix
   PowerShell snap-ins (`Get-BrokerSession`)
 

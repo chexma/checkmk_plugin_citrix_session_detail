@@ -1,4 +1,4 @@
- CheckMK Agent Plugin: Citrix Session Detail
+# CheckMK Agent Plugin: Citrix Session Detail
 # Collects Citrix session data and outputs piggyback sections per server.
 #
 # Requires: Citrix PowerShell Snap-in (Citrix.Broker.Admin)
