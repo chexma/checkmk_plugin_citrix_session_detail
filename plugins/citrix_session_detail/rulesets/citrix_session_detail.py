@@ -14,8 +14,8 @@ from cmk.rulesets.v1.form_specs import (
     Integer,
     LevelDirection,
     SimpleLevels,
-    TimeSpan,
     TimeMagnitude,
+    TimeSpan,
 )
 from cmk.rulesets.v1.rule_specs import AgentConfig, CheckParameters, HostCondition, Topic
 
