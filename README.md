@@ -45,10 +45,15 @@ renames the template remote to `template` and sets `origin`
 1. Set `EDITION` and `VARIANT` (Checkmk version) in
    `.devcontainer/devcontainer.json`.
 2. Describe the plugin in `CLAUDE.local.md`, commit.
-3. VS Code: "Dev Containers: Reopen in Container".
+3. VS Code: "Dev Containers: Reopen in Container". Without VS Code:
+   `npx -y @devcontainers/cli@latest up --workspace-folder .` builds and
+   starts the same container (VS Code reuses it later).
 4. First time only: run `claude` in the container terminal and log in. The
    login lives in the Docker volume `checkmk-claude-config`, which all plugin
    containers share, so this is needed once per machine, not per plugin.
+   Also accept the trust dialog for the workspace (once per plugin): until
+   then Claude Code ignores the project's permissions and the format hook in
+   `.claude/settings.json`.
    Caveat: there are reports that Claude instances in several containers
    writing `.claude.json` in that volume at the same moment can corrupt it
    (Claude Code then asks for a new login). If you work that way, give each
@@ -140,3 +145,6 @@ overlap, so this usually merges cleanly.
   tracked (CI attaches them to the GitHub release).
 - Several plugin containers can run at once: port 5000 is forwarded to a free
   local port per container.
+- No CPU or memory limits are set. If Pylance (installed with the Python
+  extension) gets killed on large code bases, give the Docker Desktop VM more
+  memory; `--memory=...` in `runArgs` would only add a cap.
