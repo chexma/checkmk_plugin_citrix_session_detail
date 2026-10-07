@@ -15,7 +15,11 @@ What you get:
   (configured in `pyproject.toml` / `.flake8`)
 - Claude Code (native installer, updates itself) with the
   [checkmk-plugin-dev skill](https://github.com/chexma/claude_code_checkmk_plugin_skill),
-  installed as a plugin and updated on every container start
+  installed as a plugin and updated on every container start. Project
+  settings in `.claude/settings.json`: routine commands (pytest, black, isort,
+  flake8, `cmk -v`, `ci.sh`, `test-host.sh`) run without prompts,
+  `mkp release`/`mkp disable` are denied, and a hook formats every Python
+  file Claude edits with black/isort
 - `.devcontainer/build.sh` to build the MKP from the `package` manifest
 - `.devcontainer/test-host.sh` to create a host whose agent output comes from
   a file, for discovery/check runs against canned data
@@ -45,6 +49,11 @@ cd checkmk_plugin_foo
 4. First time only: run `claude` in the container terminal and log in. The
    login lives in the Docker volume `checkmk-claude-config`, which all plugin
    containers share, so this is needed once per machine, not per plugin.
+   Caveat: there are reports that Claude instances in several containers
+   writing `.claude.json` in that volume at the same moment can corrupt it
+   (Claude Code then asks for a new login). If you work that way, give each
+   project its own volume (`checkmk-claude-config-${localWorkspaceFolderBasename}`
+   in `devcontainer.json`).
 5. Open the Checkmk GUI via the forwarded port 5000 (Ports view), path `/cmk/`.
 
 ## Test against canned agent output

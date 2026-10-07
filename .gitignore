@@ -3,6 +3,7 @@
 # patterns below are a safety net in case something lands here anyway.
 /.claude/*
 !/.claude/settings.json
+!/.claude/hooks/
 CLAUDE.local.md
 
 # Scratch space (mounted as ~/local/tmp in the site)

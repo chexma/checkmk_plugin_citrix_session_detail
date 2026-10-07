@@ -55,7 +55,10 @@ omd restart apache                    # after ruleset/graphing changes
 Build MKPs **only on explicit request**, not after every change.
 
 **Never use `mkp release` or `mkp disable`** — they delete the bind-mounted
-source files in the workspace.
+source files in the workspace (also denied in `.claude/settings.json`).
+
+A PostToolUse hook (`.claude/hooks/format-python.sh`) runs isort and black on
+every Python file you edit; don't reformat by hand afterwards.
 
 The manifest is the file `package` in the repo root (tracked in git).
 `.devcontainer/startup.sh` links it into `~/var/check_mk/packages/<name>`.

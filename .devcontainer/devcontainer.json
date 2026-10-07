@@ -23,10 +23,8 @@
         "vscode": {
             "extensions": [
                 "ms-python.python",
-                "ms-python.vscode-pylance",
                 "ms-python.flake8",
                 "ms-python.isort",
-                "ms-python.pylint",
                 "ms-python.black-formatter",
                 "anthropic.claude-code"
             ],
@@ -34,7 +32,6 @@
                 "terminal.integrated.defaultProfile.linux": "bash",
                 "python.defaultInterpreterPath": "/omd/sites/cmk/bin/python3",
                 "python.testing.pytestEnabled": true,
-                "python.testing.pytestArgs": ["tests"],
                 // Use the pinned tools from the image (requirements-tools.txt)
                 // instead of the versions bundled with the extensions, so
                 // format-on-save, the terminal and CI agree.
@@ -47,9 +44,6 @@
             }
         }
     },
-
-    "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
-    "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/${localWorkspaceFolderBasename},type=bind",
 
     "mounts": [
         { "source": "${localWorkspaceFolder}/lib", "target": "/opt/omd/sites/cmk/local/lib/python3/cmk", "type": "bind" },
@@ -75,13 +69,7 @@
         "5000": { "label": "Checkmk GUI (/cmk/, cmkadmin/cmkadmin)", "onAutoForward": "notify" }
     },
 
-    // Pylance gets SIGKILLed with less memory on larger code bases.
-    "runArgs": [
-        "--platform=linux/amd64",
-        "--cpus=2",
-        "--memory=8g",
-        "--memory-swap=10g"
-    ],
+    "runArgs": ["--platform=linux/amd64"],
 
     // containerEnv (not remoteEnv) so it also applies to `docker exec` shells
     // and lifecycle scripts.
@@ -92,7 +80,6 @@
         "PATH": "/omd/sites/cmk/bin:/omd/sites/cmk/local/lib/python3/bin:${containerEnv:PATH}",
         "OMD_ROOT": "/omd/sites/cmk",
         "OMD_SITE": "cmk",
-        "CMK_SITE_ID": "cmk",
         "WORKSPACE": "${containerWorkspaceFolder}"
     }
 }
