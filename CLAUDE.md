@@ -2,11 +2,14 @@
 
 This file provides guidance to Claude Code when working with code in this repository.
 
-<!-- TEMPLATE: replace this section with what the plugin does, which system it
-integrates with, its name/prefix, and where requirements and design notes live. -->
 ## Project
 
-CheckMK plugin `<name>` — TODO: describe purpose, external system, and status.
+This file is generic and tracked by git (it comes from the template). All
+plugin-specific context (purpose, external system, architecture,
+conventions, notes) lives in `CLAUDE.local.md` in the repo root, which is
+**not** tracked. Put new plugin knowledge there, never into this file. If
+`CLAUDE.local.md` is missing, tell the user. The package name is `name` in
+`package`; `<name>` below stands for it.
 
 Use the `checkmk-plugin-dev` skill (installed as Claude Code plugin
 `checkmk-plugin-dev@chexma-checkmk`) for CheckMK API references and templates.

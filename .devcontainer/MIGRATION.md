@@ -56,6 +56,9 @@ Collect and show the user:
 - `.devcontainer/devcontainer.json`: Checkmk edition (image `checkmk/check-mk-<edition>`
   in the Dockerfile) and `VARIANT`, fixed ports, extra mounts
 - `echo $CLAUDE_CONFIG_DIR` and whether it points into the workspace
+- `CLAUDE.md`: tracked by git, and pushed? Its plugin content moves to the
+  untracked `CLAUDE.local.md` (1.5); tell the user that anything already
+  pushed stays readable in the repo history
 - names of **other** plugins in this plugin's files: old setups were copied
   between plugins, e.g. a `build.sh` hard-coded to another package or MKP
   details of another plugin in `CLAUDE.md`. List every hit
@@ -66,6 +69,7 @@ Collect and show the user:
 
 Then ask the user to confirm that a **copy of the whole plugin folder exists
 on the host** (e.g. `cp -a sep_sesam sep_sesam.bak`). Do not continue without it.
+That copy also matters later: `CLAUDE.local.md` is never in git.
 
 ### 1.2 Back up container-only state
 
@@ -144,12 +148,17 @@ git checkout template/main -- .devcontainer .claude/settings.json .claude/hooks 
 
 ### 1.5 Merge the files that belong to both
 
-- **`CLAUDE.md`**: start from `git show template/main:CLAUDE.md`, replace
-  `<name>` with the plugin name, drop the `<!-- TEMPLATE … -->` comment. Fill
-  the *Project* section from the old file (purpose, external system, status,
-  architecture, conventions, plugin-specific commands such as agent test
-  calls). Drop old sections the template replaces: environment, mounts, MKP
-  build steps, Python tool setup, anything about the old container.
+- **`CLAUDE.md` / `CLAUDE.local.md`**: plugin-specific instructions are kept
+  private in `CLAUDE.local.md` (ignored by git, loaded by Claude Code next to
+  `CLAUDE.md`); the tracked `CLAUDE.md` stays exactly the template's.
+  1. Write `CLAUDE.local.md` from the old `CLAUDE.md` (and an old
+     `CLAUDE.local.md`, if any): purpose, external system, status,
+     architecture, conventions, plugin-specific commands such as agent test
+     calls (with paths adjusted to `plugins/<name>/...`). Drop what the
+     template's `CLAUDE.md` already covers (environment, mounts, MKP build
+     steps, Python tools, the old container) and content of other plugins (1.1).
+  2. Only then: `git checkout template/main -- CLAUDE.md`.
+  3. Check `git check-ignore CLAUDE.local.md` prints the file name.
 - **`pyproject.toml`**: start from the template's. Keep plugin sections that
   have an effect (e.g. `[tool.isort]` `known_first_party`, extra pytest
   options). Drop `[tool.flake8]` (flake8 does not read `pyproject.toml`; move
@@ -201,15 +210,18 @@ container a login may be needed (shared volume `checkmk-claude-config`).
 
 ## Phase 2: in the new container
 
-1. **Memory**: the slug is the same if the folder name did not change. Copy
+1. **`CLAUDE.local.md`** must exist in the repo root and be ignored by git
+   (`git check-ignore CLAUDE.local.md`); remind the user that it is not
+   backed up by git.
+2. **Memory**: the slug is the same if the folder name did not change. Copy
    `temp/claude-migration/memory/*` into `$CLAUDE_CONFIG_DIR/projects/<slug>/memory/`
    without overwriting existing files; if both have a `MEMORY.md`, merge the
    index lines.
-2. **Test setup**: recreate hosts with canned agent output via
+3. **Test setup**: recreate hosts with canned agent output via
    `.devcontainer/test-host.sh <host> <file>`; recreate special agent and
    parameter rules from `temp/claude-migration/rules-*.json` via the REST API
    (ask the user for passwords). Activate changes.
-3. **Verify**:
+4. **Verify**:
    - `mkp list` shows the package (registered by `startup.sh` from `package`)
    - `.devcontainer/ci.sh`: if black/isort reformat the old code, run
      `isort plugins tests && black plugins tests` and commit that separately
@@ -219,10 +231,10 @@ container a login may be needed (shared volume `checkmk-claude-config`).
      don't change assertions to make them pass, the user decides.
    - `cmk -vI` / `cmk -v --detect-plugins=<plugin> <host>` on a test host
    - optional: `.devcontainer/build.sh` (builds the current version from `package`)
-4. **Clean up** after the user's OK: in `.claude/` everything except
+5. **Clean up** after the user's OK: in `.claude/` everything except
    `settings.json` and `hooks/` (old login, history, sessions, cloned skills,
    backups); old MKPs in `plugins_legacy/enabled_packages/` (the old site's
    state; the new site lists them as inactive versions in `mkp list`, and
    `build.sh` recreates the current one); `temp/claude-migration/`.
-5. Commit. A repo without `origin`: the user creates the GitHub repo, then
+6. Commit. A repo without `origin`: the user creates the GitHub repo, then
    `git remote add origin <url>`; push only when asked. CI runs on the first push.

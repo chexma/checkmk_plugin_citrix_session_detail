@@ -38,13 +38,13 @@ cd checkmk_plugin_foo
 .devcontainer/init-plugin.sh foo <url-of-the-new-plugin-repo>
 ```
 
-`init-plugin.sh` puts the plugin name into `CLAUDE.md`, creates
-`plugins/foo/`, renames the template remote to `template` and sets `origin`
+`init-plugin.sh` creates `CLAUDE.local.md` (see below) and `plugins/foo/`,
+renames the template remote to `template` and sets `origin`
 (leave out the URL to keep the remotes as they are). Then:
 
 1. Set `EDITION` and `VARIANT` (Checkmk version) in
    `.devcontainer/devcontainer.json`.
-2. Describe the plugin in the project section of `CLAUDE.md`, commit.
+2. Describe the plugin in `CLAUDE.local.md`, commit.
 3. VS Code: "Dev Containers: Reopen in Container".
 4. First time only: run `claude` in the container terminal and log in. The
    login lives in the Docker volume `checkmk-claude-config`, which all plugin
@@ -55,6 +55,16 @@ cd checkmk_plugin_foo
    project its own volume (`checkmk-claude-config-${localWorkspaceFolderBasename}`
    in `devcontainer.json`).
 5. Open the Checkmk GUI via the forwarded port 5000 (Ports view), path `/cmk/`.
+
+## Claude instructions: CLAUDE.md and CLAUDE.local.md
+
+`CLAUDE.md` is generic (environment, commands, MKP rules), comes from the
+template and is tracked. Everything about the plugin itself (purpose,
+external system, architecture, conventions) goes into `CLAUDE.local.md`:
+Claude Code loads it next to `CLAUDE.md`, but git ignores it, so nothing
+about the plugin is exposed in the repo. It exists only on your machine, as
+does Claude's memory in the `checkmk-claude-config` volume: keep a copy if
+you need it elsewhere.
 
 ## Test against canned agent output
 
