@@ -9,6 +9,9 @@ CLAUDE.local.md
 # Scratch space (mounted as ~/local/tmp in the site)
 /temp/
 
+# mkp keeps enabled packages in local/share/check_mk, i.e. plugins_legacy/
+/plugins_legacy/enabled_packages/
+
 # Python / tooling
 __pycache__/
 *.pyc

@@ -72,6 +72,21 @@ To release: bump `version` in `package`, commit, then
 `git tag v<version> && git push origin v<version>`. CI builds the MKP and
 attaches it to a GitHub release; it fails if the tag and `version` differ.
 
+## Migrate an existing plugin
+
+For plugin folders from an older devcontainer setup (with or without git):
+`.devcontainer/MIGRATION.md` is a step-by-step guide for Claude Code in the
+old container. In that container, ask Claude:
+
+```text
+Add https://github.com/chexma/checkmk-plugin-template.git as git remote
+"template" (run `git init -b main` first if this is no git repo), fetch it and
+follow `git show template/main:.devcontainer/MIGRATION.md`, phase 1.
+```
+
+Then rebuild the container in VS Code and, in the new container:
+`Follow .devcontainer/MIGRATION.md, phase 2.`
+
 ## Get template updates into a plugin repo
 
 ```bash
