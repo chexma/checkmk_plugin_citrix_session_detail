@@ -33,6 +33,9 @@ General rules for both phases:
 - Never print or copy `.claude/.credentials.json` or other secrets.
 - `<name>` below is the plugin/package name (`name` in the manifest `package`).
 - Work from the workspace root (`$WORKSPACE`, e.g. `/workspaces/sep_sesam`).
+- If git reports "detected dubious ownership", run
+  `git config --global --add safe.directory "$WORKSPACE"` (the bind-mounted
+  workspace belongs to the host user; new containers set this up themselves).
 
 ---
 
@@ -53,6 +56,13 @@ Collect and show the user:
 - `.devcontainer/devcontainer.json`: Checkmk edition (image `checkmk/check-mk-<edition>`
   in the Dockerfile) and `VARIANT`, fixed ports, extra mounts
 - `echo $CLAUDE_CONFIG_DIR` and whether it points into the workspace
+- names of **other** plugins in this plugin's files: old setups were copied
+  between plugins, e.g. a `build.sh` hard-coded to another package or MKP
+  details of another plugin in `CLAUDE.md`. List every hit
+  (`grep -rIl` for the other plugin names you find, outside `.claude/`); such
+  content is dropped in the merge.
+- tests that depend on the old layout: paths into a workspace copy
+  (`local/lib/python3/...`), `sys.path` tweaks, stubs replacing `cmk` modules
 
 Then ask the user to confirm that a **copy of the whole plugin folder exists
 on the host** (e.g. `cp -a sep_sesam sep_sesam.bak`). Do not continue without it.
@@ -150,6 +160,9 @@ git checkout template/main -- .devcontainer .claude/settings.json .claude/hooks 
   `Changelog.md`, take the template's stub.
 - **`package`**: keep; check `name` matches `plugins/<name>/` and `files`
   lists exist.
+- **Tests**: point paths into a workspace copy (`local/lib/python3/cmk_addons/plugins/<name>/...`)
+  to `plugins/<name>/...` before that copy is removed in 1.6. Leave stubs and
+  assertions alone; phase 2 shows whether the tests pass.
 
 ### 1.6 Clean up
 
@@ -198,13 +211,18 @@ container a login may be needed (shared volume `checkmk-claude-config`).
    (ask the user for passwords). Activate changes.
 3. **Verify**:
    - `mkp list` shows the package (registered by `startup.sh` from `package`)
-   - `.devcontainer/ci.sh`: if black/isort reformat the old code, commit that
-     separately ("Format with pinned black/isort"); fix flake8 findings or
-     report them
+   - `.devcontainer/ci.sh`: if black/isort reformat the old code, run
+     `isort plugins tests && black plugins tests` and commit that separately
+     ("Format with pinned black/isort"). Report flake8 findings and failing
+     tests to the user with their cause. Tests that no longer match the plugin
+     code (e.g. changed function signatures) were broken before the migration:
+     don't change assertions to make them pass, the user decides.
    - `cmk -vI` / `cmk -v --detect-plugins=<plugin> <host>` on a test host
    - optional: `.devcontainer/build.sh` (builds the current version from `package`)
 4. **Clean up** after the user's OK: in `.claude/` everything except
    `settings.json` and `hooks/` (old login, history, sessions, cloned skills,
-   backups); `temp/claude-migration/`.
+   backups); old MKPs in `plugins_legacy/enabled_packages/` (the old site's
+   state; the new site lists them as inactive versions in `mkp list`, and
+   `build.sh` recreates the current one); `temp/claude-migration/`.
 5. Commit. A repo without `origin`: the user creates the GitHub repo, then
    `git remote add origin <url>`; push only when asked. CI runs on the first push.

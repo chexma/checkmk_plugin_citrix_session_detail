@@ -13,6 +13,10 @@ ln -sv "$WORKSPACE/nagios_plugins" "$OMD_ROOT/local/lib/nagios/plugins"
 rm -rf "$OMD_ROOT/local/tmp"
 ln -sv "$WORKSPACE/temp" "$OMD_ROOT/local/tmp"
 
+# The bind-mounted workspace belongs to the host user, not cmk: without this,
+# git refuses to work in it ("detected dubious ownership").
+git config --global --add safe.directory "$WORKSPACE"
+
 # Fixed GUI login for local development only: cmkadmin / cmkadmin
 set +u
 source "$OMD_ROOT/.profile"
