@@ -10,9 +10,9 @@ What you get:
   on every container start, GUI login `cmkadmin`/`cmkadmin`
 - Workspace directories bind-mounted into the site's `local/` hierarchy, so
   plugin changes are live without copying
-- Python tooling: pytest (shipped with Checkmk) plus pytest-cov and
-  requests-mock in the site Python; black, isort and flake8 in a separate venv
-  (configured in `pyproject.toml` / `.flake8`)
+- Python tooling: pytest, pytest-cov and requests-mock in the site Python
+  (pytest ships with Checkmk 2.4, the image adds it for 2.5); black, isort and
+  flake8 in a separate venv (configured in `pyproject.toml` / `.flake8`)
 - Claude Code (native installer, updates itself) with the
   [checkmk-plugin-dev skill](https://github.com/chexma/claude_code_checkmk_plugin_skill),
   installed as a plugin and updated on every container start. Project
@@ -129,16 +129,20 @@ overlap, so this usually merges cleanly.
 - The container starts the site, cleans stale PID files and refreshes the
   skill plugin on **every** start; the log is
   `~/var/log/devcontainer-poststart.log`.
-- `.devcontainer/requirements-site.txt` is installed into the site with
-  `--no-deps`: the site's `pip3` always installs with `--target`, which would
-  otherwise add local copies of packages Checkmk ships (urllib3, requests,
-  pytest, ...) that shadow the shipped ones. List missing dependencies there
-  explicitly. Standalone tools go into `requirements-tools.txt` (own venv).
+- `.devcontainer/requirements-site.txt` is installed into the site by
+  `install-site-requirements.py`: the site's `pip3` always installs with
+  `--target`, which would otherwise add local copies of packages Checkmk ships
+  (urllib3, requests, pytest, ...) that shadow the shipped ones. The script
+  installs with `--no-deps` and adds only dependencies the Checkmk version
+  lacks, at the versions in `constraints-site.txt` (pin new ones there).
+  Standalone tools go into `requirements-tools.txt` (own venv).
 - All tool versions are pinned; bump them deliberately and rebuild. VS Code
   is configured to use the pinned black/isort/flake8 from the image, not the
   ones bundled with its extensions.
 - Rebuilds pick up a new Checkmk version from `VARIANT`; Claude Code updates
-  itself, no rebuild needed for that.
+  itself, no rebuild needed for that. Checkmk 2.5 renamed the editions
+  (images `check-mk-community`, `-pro`, `-ultimate`, `-ultimatemt`; `cloud`
+  became `ultimate`), so moving to 2.5 changes `EDITION` too.
 - The Checkmk images exist for `linux/amd64` only. On Apple Silicon they run
   emulated; enable "Use Rosetta for x86_64/amd64 emulation" in Docker Desktop.
 - Releases are documented in `Changelog.md`; built `*.mkp` files are not
